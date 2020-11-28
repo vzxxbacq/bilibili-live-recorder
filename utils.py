@@ -10,10 +10,10 @@ def get_current_time(time_format):
     return current_time
 
 
-def generate_filename(room_id):
+def generate_filename():
     data = dict()
     data['c_time'] = get_current_time('%Y%m%d_%H%M')
-    data['room_id'] = room_id
+    # data['room_id'] = room_id
     return '_'.join(data.values()) + '.flv'
 
 

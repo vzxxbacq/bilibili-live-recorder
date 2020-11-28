@@ -11,8 +11,10 @@ urllib3.disable_warnings()
 
 
 class BiliBiliLiveRecorder(BiliBiliLive):
-    def __init__(self, room_id, check_interval=5 * 60):
-        super().__init__(room_id)
+    def __init__(self, room, out_dir, check_interval=5 * 60):
+        self.room_owner = room[1]
+        super().__init__(room[0])
+        self.out_dir = out_dir
         self.inform = utils.inform
         self.print = utils.print_log
         self.check_interval = check_interval
@@ -24,10 +26,10 @@ class BiliBiliLiveRecorder(BiliBiliLive):
                 if room_info['status']:
                     self.inform(room_id=self.room_id,
                                 desp=room_info['roomname'])
-                    self.print(self.room_id, room_info['roomname'])
+                    self.print(self.room_id, self.room_owner +'\t'+room_info['roomname'])
                     break
                 else:
-                    self.print(self.room_id, '等待开播')
+                    self.print(self.room_id, self.room_owner + '\t' + '等待开播')
             except Exception as e:
                 self.print(self.room_id, 'Error:' + str(e))
             time.sleep(interval)
@@ -53,9 +55,11 @@ class BiliBiliLiveRecorder(BiliBiliLive):
         while True:
             try:
                 urls = self.check(interval=self.check_interval)
-                filename = utils.generate_filename(self.room_id)
+                filename = utils.generate_filename()
                 utils.checkRecordDirExisted()
-                c_filename = os.path.join(os.getcwd(), 'files', filename)
+                if not os.path.exists(os.path.join(self.out_dir, self.room_owner)):
+                    os.makedirs(os.path.join(self.out_dir, self.room_owner))
+                c_filename = os.path.join(self.out_dir, self.room_owner, filename)
                 self.record(urls[0], c_filename)
                 self.print(self.room_id, '录制完成' + c_filename)
             except Exception as e:
@@ -64,17 +68,16 @@ class BiliBiliLiveRecorder(BiliBiliLive):
 
 
 if __name__ == '__main__':
-    print(sys.argv)
     if len(sys.argv) == 2:
-        input_id = [str(sys.argv[1])]
+        inputs = [str(sys.argv[1])]
     elif len(sys.argv) == 1:
-        input_id = config.rooms  # input_id = '917766' '1075'
+        inputs = config.rooms  # input_id = '917766' '1075'
     else:
         raise ValueError('请检查输入的命令是否正确 例如：python3 run.py 10086')
-
+    OUT_DIR = config.out_dir
     mp = multiprocessing.Process
     tasks = [
-        mp(target=BiliBiliLiveRecorder(room_id).run) for room_id in input_id
+        mp(target=BiliBiliLiveRecorder(room, OUT_DIR).run) for room in inputs
     ]
     for i in tasks:
         i.start()
